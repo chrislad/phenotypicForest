@@ -1,0 +1,14 @@
+Package: phenotypicForest
+Depends: R (>= 3.1)
+License: GPL-2
+Title: Phenotypic forest plot
+Authors@R: person("Christophe", "Ladroue", email = "c.ladroue@gmail.com", role = c("aut", "cre"))
+Description: This package generates plots representing the association of SNPs
+    with a list of phenotypes.
+Version: 0.3
+LazyData: true
+Imports:
+  plyr,
+  ggplot2
+Suggests: knitr
+VignetteBuilder: knitr
