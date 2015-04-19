@@ -7,7 +7,7 @@
 See [the vignette](http://htmlpreview.github.io/?https://github.com/chrislad/phenotypicForest/blob/master/inst/doc/PhenotypicForests.html) for some examples.
 
 # Installation
-You need to install `devtools` for `CRAN` first (`install.packages("devtools")`). Then run the command:
+You need to install `devtools` from `CRAN` first (`install.packages("devtools")`). Then run the command:
 ```
 devtools::install_github("chrislad/phenotypicForest")
 ```
