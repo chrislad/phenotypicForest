@@ -1,0 +1,191 @@
+---
+title: "Phenotypic forest package"
+author: "Christophe Ladroue"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Phenotypic forests}
+  %\VignetteEngine{knitr::rmarkdown}
+  \usepackage[utf8]{inputenc}
+---
+
+## Introduction
+Phenotypic forest plots (phorests) are a way to present the effects of SNPs on a range of phenotypes. They facilitate the comparison of associations across SNPs, for example tagging different genes, over a number of phenotypes. If the number of SNPs is small (less than 15 or 20), all the associations are plotted. For large SNP sets, an alternative representation is available which shows the association statistics groups of SNPs.
+
+This package also offers `polarHistogram()`, which can display a large number of histograms in a small space.
+
+## Phorest
+Phenotypic forest plots were originally designed for comparing the associations of SNPs to a list of phenotypes. The association data should be in a data frame with at least the columns:
+
+* `phenotype`, `value`, `lowerBound`, `upperBound` and `SNP` for the default mode.
+* `phenotype`, `value` and `SNP` if the number of SNPs is large `largeSNPSet = TRUE`.
+
+If your data frame contains the necessary information but has different column names, you can use the argument `columnNames` to specify which ones correspond to the necessary columns. 
+
+### Small number of SNPs (default mode)
+We first generate some toy data.
+
+```{r}
+randomWord<-function(n, nLetters = 5)
+   replicate(n,paste(sample(letters, nLetters, replace = TRUE),sep = '', collapse=''))
+
+toyData <- function(nPhenotype = 17, nSNP = 7, nPhenotypeGroups = 3 ){
+  df <- data.frame(
+    phenotype      = rep(randomWord(nPhenotype), 1, each = nSNP),
+    value          = rep(1:nSNP, nPhenotype) + rnorm(nSNP * nPhenotype, mean = 0, sd = 0.1),
+    lowerBound     = runif(nPhenotype * nSNP, min = 0.0, max = 0.1),
+    upperBound     = runif(nPhenotype * nSNP, min = 0.0, max = 0.1),
+    phenotypeGroup = rep(sample(toupper(randomWord(nPhenotypeGroups)), nPhenotype, replace = TRUE), 1, each = nSNP),
+    SNP            = paste('rs',rep(sample(100000, nSNP), nPhenotype), sep = '')
+    )
+  
+  df <- within(df, {
+    lowerBound <- value - lowerBound
+    upperBound <- value + upperBound}
+             )
+  df
+}
+
+set.seed(42)
+nPhenotype <- 17
+nSNP <- 7
+nPhenotypeGroups <- 3
+
+df <- toyData(nPhenotype, nSNP , nPhenotypeGroups)
+print(head(df))
+```
+This dataset contains `r nSNP` SNPs (Single Nucleotide Polymorphisms) and their relation (`value`) with `r nPhenotype` phenotypes. Each relation comes with a lower and upper bound. The phenotypes are grouped into `r nPhenotypeGroups` groups.
+
+Running `phorest()` on this dataset produces the following plot:
+```{r, fig.width = 6,fig.height = 3 }
+library(phenotypicForest)
+phorest(df, connectingLines = TRUE)
+```
+
+Each SNP is represented by its own colour. Each association value is a represented by a black dot. Each dot is in a small rectangle of the colour of the SNP and represents the uncertainty on that value. A connecting line helps in following and comparing SNPs over the list of phenotypes.
+
+
+Phenotypes are shown on y-axis, in alphabetical order. It is often helpful to group them by theme, for example all phenotypes relating to lipids in one group, all phenotypes relating to muscle in another. 
+
+### Setting up phenotype groups
+Phenotype groups can be set up in two ways:
+
+* by specifying the group in the data frame directly, in the `phenotypeGroup` column.
+* by using the `phenotypeGroups` argument in `phorest()` as a named list of phenotypes, of the form `list("group1"=c("phenotype5","phenotype3"...` etc.
+
+In the following example, the plots `p1` and `p2` will be identical. In the first instance, the phenotype groups were defined by the column `phenotypeGroup` in `df`. In the second instance, the column didn't exist in `df` but phenotype groups were defined through a list (`userDefined`).
+
+```{r, fig.width = 6,fig.height = 3 }
+ set.seed(42)
+ df <- toyData(10,1,3)
+ print(df)
+ phorest(df)
+```
+ 
+```{r, fig.width = 6,fig.height = 3 }
+ df$phenotypeGroup <- NULL # delete phenotypeGroup column
+  
+ userDefined <- list(
+   "JONOSE" = c("xyhvq", "ntdrs", "lsygm", "yzdmo"),
+   "RYBYGU" = c("xdzyc", "nkxlv", "tvkra"),
+   "GYKUXU" = c("vafxp", "jlazl", "yxqzq"))
+
+  phorest(df, phenotypeGroups = userDefined)
+```
+
+## Phorest for a large number of SNPs
+If the number of SNPs to compare is large, it makes more sense to group them (*e.g.* by genes, pathway etc.) and plot some descriptive statistics instead. Defining the groups of SNPs is done in a similar fashion as defining groups of phenotypes:
+
+* by specifying the group in the data frame directly, in the `SNPGroup` column.
+* by using the `SNPGroups` argument in `phorest` as a named list of phenotypes, of the form `list("SNPgroup1" = c("rs1298371","rs129031"...` etc.
+
+Here is an example on toy data:
+```{r, fig.width = 8,fig.height = 4 }
+# creating some random SNP groups
+set.seed(42)
+nSNP <- 200
+nSNPGroup <- 4
+df <- toyData(17,nSNP,4)
+df$value <- rnorm(nrow(df))
+tmp <- data.frame(
+  SNP = unique(df$SNP),
+  SNPGroup = sample(paste0("SNP Group#", 1:nSNPGroup), nSNP, replace = TRUE))
+df <- merge(df, tmp, by = "SNP")
+
+head(df)
+
+phorest(
+  df,
+  largeSNPSet = TRUE,
+  title = 'default plot for large SNP sets')
+```
+
+Each group of SNPs is represented by its distribution on the phenotypes. The default aggregating functions are median (for the line), and 25% and 75% quartiles (for the shaded area). You can define other statistics very easily, for example mean and standard deviation, with:
+```{r, fig.width = 8,fig.height = 4 }
+# specifying the aggregating functions
+phorest(
+  df,
+  largeSNPSet = TRUE,
+  aggregatingFunction = function(x) mean(x, na.rm = TRUE),
+  aggregatingLowerBound = function(x) mean(x, na.rm = TRUE) - sd(x, na.rm = TRUE),
+  aggregatingUpperBound = function(x) mean(x, na.rm = TRUE) + sd(x, na.rm = TRUE),
+  title = 'mean and standard deviation')
+```
+
+## polarHistogram
+`polarHistogram` is useful for displaying a large number (about 100) of histograms in a small space. This plot was inspired by an illustration in Kettunen *et al.* 2012. The data must be in a data frame. The default column names are `family`, `item`, `score` and `value`. Each bar of the wheel shows the breakdown of `score` according to the corresponding `value`. Bars themselves are grouped into `family`.
+
+```{r, fig.width = 7, fig.height = 7}
+set.seed(42)
+nFamily <- 20
+nItemPerFamily <- sample(1:6, nFamily,replace = TRUE)
+nValues <- 3
+
+df <- data.frame(
+  family = rep( randomWord(nFamily), times = nValues * nItemPerFamily),
+  item   = rep( randomWord(sum(nItemPerFamily), 3), each = nValues ),
+  score  = rep( paste0("V",1:nValues), times = sum(nItemPerFamily)),
+  value  = round(500 * runif( sum(nItemPerFamily * nValues)),2))
+
+print(head(df))
+ 
+polarHistogram(df, familyLabel = FALSE)
+```
+
+By default, each bar is normalised to 100%. For example, item `edm` has the following scores:
+
+```{r}
+df[df$item == 'edm',]
+```
+
+which gives the following height for the bars:
+```{r}
+100*df[df$item == 'edm',]$value/sum(df[df$item == 'edm',]$value)
+```
+as seen in the first bar. A white guide helps reading the values across the plot. By default it shows the 10%, 20%, 40% and 80% marks. This can be overriden with the argument `guides`.
+
+It is possible to turn the normalisation off with `normalised = FALSE`. You might get some errors if the guides are not appropriate with the non-normalised values. For example, plotting the same data frame without normalisation yields:
+```{r, fig.width=7, fig.height=7}
+polarHistogram(df, normalised = FALSE, guides = c(100,300,500,1000))
+```
+
+## Renaming the data frame's columns
+`phorest()` and `polarHistogram` require a data frame with specific columns. If your data frame doesn't follow the same naming convention, you can simply use `columnNames` to indicate the name of the corresponding column in the function.
+
+For example, suppose that you want to use `phorest()` but your data frame `df` has a column `snpid` instead of the expected `SNP` and a column `assays` instead of `phenotype`. Call `phorest()` as following:
+```{r}
+  # not run
+  # p <- phorest(df, columnNames = c("SNP" = "snpid", "phenotype" = "assays))
+```
+
+## Modifying/saving phorests or polarHistograms
+The graph is a `ggplot2` object and as such has all the properties of this type of object. 
+
+Saving the plot as a `png` or a `pdf` is done with `ggsave`: `ggsave("myPhorest.png",p)` or `ggsave("myPhorest.pdf",p)`, where `p` is the output of `phorest()` or `polarHistogram()`.
+
+Adding a title, changing the axes label, the colour scheme etc. are also done like any `ggplot2` objects.
+```{r}  
+#  p <- polarHistogram(df)
+#  p <- p + ggtitle("put title here") + xlab("label for x-axis") + ylab("label for y-axis")  
+#  print(p)
+```
