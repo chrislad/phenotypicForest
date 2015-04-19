@@ -4,7 +4,7 @@
 1. `phorest`: similar to epidemiological forest plots but used for comparing the effects of SNPs on phenotypes.  Phenotypes can be grouped by themes. Phorests can also be used to compare groups of SNPs. 
 2. `polarHistogram`: plots a large number of histogram on a wheel, to save space.
 
-See the vignette for some examples.
+See [the vignette](http://htmlpreview.github.io/?https://github.com/chrislad/phenotypicForest/blob/master/inst/doc/PhenotypicForests.html) for some examples.
 
 # Installation
 You need to install `devtools` for `CRAN` first (`install.packages("devtools")`). Then run the command:
