@@ -9,7 +9,7 @@ See the vignette for some examples.
 # Installation
 You need to install `devtools` for `CRAN` first (`install.packages("devtools")`). Then run the command:
 ```
-devtools::install_github("chrisla/phenotypicForest")
+devtools::install_github("chrislad/phenotypicForest")
 ```
 
 # Note
